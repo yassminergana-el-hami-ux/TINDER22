@@ -10,8 +10,8 @@ class UserValidator
         $errors = [];
         $data = [];
 
-        // 1) Champs obligatoires
-        $required = ['emailUser', 'mdpUser', 'mdpConfirmation', 'nomEUser', 'prenomUser', 'age', 'idGenr'];
+        // 1) Champs obligatoires (le front envoie la date de naissance; on calcule l'âge côté serveur)
+        $required = ['emailUser', 'mdpUser', 'mdpConfirmation', 'nomEUser', 'prenomUser', 'dateNaissance', 'idGenr'];
         foreach ($required as $field) {
             if (!isset($input[$field]) || (is_string($input[$field]) && trim($input[$field]) === '')) {
                 $errors[$field] = 'Champ requis';
@@ -86,17 +86,22 @@ class UserValidator
             }
         }
 
-        // 7) age
-        if (!isset($errors['age']) && isset($input['age'])) {
-            $age = filter_var($input['age'], FILTER_VALIDATE_INT);
-            if ($age === false) {
-                $errors['age'] = 'Âge invalide';
-            } elseif ($age < 18) {
-                $errors['age'] = 'Vous devez avoir au moins 18 ans';
-            } elseif ($age > 120) {
-                $errors['age'] = 'Âge invalide';
+        // 7) dateNaissance -> calcul de l'âge (18-120)
+        if (!isset($errors['dateNaissance']) && isset($input['dateNaissance'])) {
+            $dob = $input['dateNaissance'];
+            $d = DateTime::createFromFormat('Y-m-d', $dob);
+            $now = new DateTime();
+            if (!$d) {
+                $errors['dateNaissance'] = 'Date de naissance invalide';
             } else {
-                $data['age'] = $age;
+                $age = $d->diff($now)->y;
+                if ($age < 18) {
+                    $errors['dateNaissance'] = 'Vous devez être majeur (18+)';
+                } elseif ($age > 120) {
+                    $errors['dateNaissance'] = 'Âge invalide';
+                } else {
+                    $data['age'] = $age;
+                }
             }
         }
 

@@ -22,16 +22,22 @@ class AuthController
         // Headers JSON
         header('Content-Type: application/json; charset=utf-8');
 
-        // Lecture du JSON body
-        $raw = file_get_contents('php://input');
-        $input = json_decode($raw, true);
-        if (!is_array($input)) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Données invalides', 'errors' => ['body' => 'JSON malformé']]);
-            return;
+        // Supporter multipart/form-data (avec photo) ou JSON
+        $input = [];
+        $files = [];
+        if (isset($_SERVER['CONTENT_TYPE']) && str_contains($_SERVER['CONTENT_TYPE'], 'multipart/form-data')) {
+            // PHP remplit $_POST et $_FILES
+            $input = $_POST;
+            $files = $_FILES;
+        } else {
+            $raw = file_get_contents('php://input');
+            $input = json_decode($raw, true) ?? [];
         }
 
-        // IP du client (simple)
+        // Démarrer la session pour CSRF et autres
+        if (session_status() === PHP_SESSION_NONE) session_start();
+
+        // IP du client
         $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
 
         try {
@@ -48,6 +54,16 @@ class AuthController
             // Enregistrer la tentative (on compte aussi les échecs)
             $stmt = $this->db->prepare('INSERT INTO registration_attempts (ip) VALUES (:ip)');
             $stmt->execute([':ip' => $ip]);
+
+            // CSRF token vérification si fournie (session must have token generated via /api/csrf)
+            if (isset($input['csrf_token'])) {
+                $token = $_SESSION['csrf_token'] ?? null;
+                if (!$token || !hash_equals($token, $input['csrf_token'])) {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'message' => 'Données invalides', 'errors' => ['csrf' => 'Jeton CSRF invalide']]);
+                    return;
+                }
+            }
 
             // Validation
             $validation = UserValidator::validate($input, $this->userModel);
@@ -90,12 +106,36 @@ class AuthController
             // Hash du mot de passe (ne jamais logger mdp)
             $hashed = password_hash($data['mdpUser'], PASSWORD_DEFAULT);
 
+            $photoFilename = null;
+            // Si fichier image envoyé
+            if (!empty($files['photo'] ?? null) && ($files['photo']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+                require_once __DIR__ . '/../helpers/Upload.php';
+                $u = new Upload();
+                $res = $u->handle($files['photo'], __DIR__ . '/../uploads');
+                if (!$res['success']) {
+                    if ($res['error'] === 'FILE_TOO_LARGE') {
+                        http_response_code(413);
+                        echo json_encode(['success' => false, 'message' => 'Fichier trop volumineux']);
+                        return;
+                    }
+                    if ($res['error'] === 'INVALID_FILE_TYPE') {
+                        http_response_code(400);
+                        echo json_encode(['success' => false, 'message' => 'Type de fichier invalide', 'errors' => ['photo' => 'Types autorisés : jpg, png, webp']]);
+                        return;
+                    }
+                    http_response_code(500);
+                    echo json_encode(['success' => false, 'message' => 'Erreur serveur']);
+                    return;
+                }
+                $photoFilename = $res['filename'];
+            }
+
             // Préparer tableau pour insertion
             $insertData = [
                 'idGenr' => $data['idGenr'],
                 'nomEUser' => $data['nomEUser'],
                 'prenomUser' => $data['prenomUser'],
-                'photo' => null,
+                'photo' => $photoFilename,
                 'age' => $data['age'],
                 'biographie' => $data['biographie'],
                 'emailUser' => $data['emailUser'],
@@ -105,7 +145,7 @@ class AuthController
             $user = $this->userModel->create($insertData);
 
             http_response_code(201);
-            echo json_encode(['success' => true, 'message' => 'Compte créé avec succès', 'data' => $user]);
+            echo json_encode(['success' => true, 'message' => 'Compte créé', 'data' => ['idUser' => $user['idUser'], 'prenomUser' => $user['prenomUser'], 'emailUser' => $user['emailUser']]]);
             return;
 
         } catch (Exception $e) {

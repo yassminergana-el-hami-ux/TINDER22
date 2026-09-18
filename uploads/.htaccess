@@ -1,0 +1,5 @@
+# Interdire l'exécution de scripts dans le dossier uploads
+Options -Indexes
+<FilesMatch "\.(php|phar|phtml)$">
+  Deny from all
+</FilesMatch>
