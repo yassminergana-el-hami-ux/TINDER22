@@ -223,6 +223,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $userId = $db->lastInsertId();
             $success = true;
             
+            // Redirection vers la liste des utilisateurs pour afficher le compte fraîchement créé
+            header('Location: list.php?success=1&id=' . (int)$userId);
+            exit;
+            
             // Message de succès
             echo '<div class="alert alert-success alert-dismissible fade show" role="alert">
                     <strong>Succès!</strong> L\'utilisateur a été créé avec succès (ID: ' . htmlspecialchars($userId) . ').
@@ -248,10 +252,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $genres = [];
 try {
     $db = Database::getInstance();
-    $sql = "SELECT idGenr, libGenr FROM `GENRE` ORDER BY libGenr ASC";
-    $stmt = $db->prepare($sql);
-    $stmt->execute();
-    $genres = $stmt->fetchAll();
+
+    $countStmt = $db->query('SELECT COUNT(*) FROM `GENRE`');
+    $genreCount = (int) $countStmt->fetchColumn();
+
+    if ($genreCount === 0) {
+        $defaultGenres = ['Femme', 'Homme', 'Préfère ne pas répondre'];
+        foreach ($defaultGenres as $label) {
+            $insert = $db->prepare('INSERT INTO `GENRE` (libGenr) VALUES (:libGenr)');
+            $insert->execute([':libGenr' => $label]);
+        }
+    }
+
+    $stmt = $db->query('SELECT idGenr, libGenr FROM `GENRE` ORDER BY idGenr ASC');
+    $genres = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $preferredOrder = ['Femme' => 0, 'Homme' => 1, 'Préfère ne pas répondre' => 2];
+    usort($genres, function ($a, $b) use ($preferredOrder) {
+        $aOrder = $preferredOrder[$a['libGenr']] ?? 99;
+        $bOrder = $preferredOrder[$b['libGenr']] ?? 99;
+        return $aOrder <=> $bOrder;
+    });
 } catch (Exception $e) {
     error_log('Erreur récupération genres: ' . $e->getMessage());
 }
