@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - Tinder Clone</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* Styles spécifiques pour la page de connexion */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 400px;
+            padding: 40px;
+        }
+
+        .container h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .container p {
+            text-align: center;
+            color: #999;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .error-message {
+            background-color: #fee;
+            color: #c33;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+            text-align: center;
+            font-size: 14px;
+            border-left: 4px solid #c33;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input[type="email"],
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+
+        input[type="email"]:focus,
+        input[type="password"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .password-toggle {
+            position: relative;
+        }
+
+        .password-toggle input {
+            padding-right: 40px;
+        }
+
+        .password-toggle button {
+            position: absolute;
+            right: 12px;
+            top: 38px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #999;
+            font-size: 18px;
+            padding: 0;
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .remember-me input[type="checkbox"] {
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+            accent-color: #667eea;
+        }
+
+        .remember-me label {
+            cursor: pointer;
+            margin: 0;
+        }
+
+        .button {
+            width: 100%;
+            padding: 12px;
+            background-color: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .button:hover:not(:disabled) {
+            background-color: #5568d3;
+        }
+
+        .button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .spinner {
+            display: none;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .links {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        .links a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .links a:hover {
+            color: #5568d3;
+            text-decoration: underline;
+        }
+
+        .links-divider {
+            color: #ddd;
+            margin: 0 8px;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 30px 20px;
+                border-radius: 8px;
+            }
+
+            .container h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Connexion</h1>
+        <p>Rejoignez notre communauté</p>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="emailUser" required placeholder="vous@exemple.fr">
+            </div>
+
+            <div class="form-group">
+                <label for="password">Mot de passe</label>
+                <div class="password-toggle">
+                    <input type="password" id="password" name="mdpUser" required placeholder="••••••••">
+                    <button type="button" id="togglePassword" title="Afficher/masquer">👁</button>
+                </div>
+            </div>
+
+            <div class="remember-me">
+                <input type="checkbox" id="rememberMe" name="rememberMe">
+                <label for="rememberMe">Se souvenir de moi</label>
+            </div>
+
+            <button type="submit" class="button" id="submitBtn">
+                <span class="spinner" id="spinner"></span>
+                <span>Se connecter</span>
+            </button>
+        </form>
+
+        <div class="links">
+            <a href="connexion.html#forgot" class="forgot">Mot de passe oublié ?</a>
+            <span class="links-divider">•</span>
+            <a href="inscription.html">S'inscrire</a>
+        </div>
+    </div>
+
+    <script src="js/connexion.js"></script>
+</body>
+</html>

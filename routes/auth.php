@@ -44,5 +44,23 @@ function handleAuthRoutes(string $uri, string $method)
         return true;
     }
 
+    if (preg_match('#/api/login$#', $path) && strtoupper($method) === 'POST') {
+        $controller = new AuthController();
+        $controller->login();
+        return true;
+    }
+
+    if (preg_match('#/api/logout$#', $path) && strtoupper($method) === 'POST') {
+        $controller = new AuthController();
+        $controller->logout();
+        return true;
+    }
+
+    if (preg_match('#/api/me$#', $path) && strtoupper($method) === 'GET') {
+        $controller = new AuthController();
+        $controller->me();
+        return true;
+    }
+
     return false;
 }
